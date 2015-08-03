@@ -1,0 +1,14 @@
+{
+    "applications": {
+        "Easyswap": {
+            "applicationId": "7CK99aj18YgBA2RO9uQPh7xepDBsjAvEjox4k8V6", 
+            "masterKey": "v9lPenByWhMbfh7e6xlHmCTM73GnxeYZr84NpQXK"
+        }, 
+        "_default": {
+            "link": "Easyswap"
+        }
+    }, 
+    "global": {
+        "parseVersion": "1.3.2"
+    }
+}
