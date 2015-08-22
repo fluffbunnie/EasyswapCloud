@@ -22,7 +22,7 @@ Parse.Cloud.afterSave("Property", function(request) {
             success: function (results) {
                 for (index = 0; index < results.length; index++) {
                     var oldProperty = results[index];
-                    var oldOwner = existingProperty.get("owner");
+                    var oldOwner = oldProperty.get("owner");
                     if (oldOwner.get("loginType") == undefined) {
                         newPropertyUpdateTrip(oldProperty, oldOwner, replaceProperty, replaceOwner);
                     }
