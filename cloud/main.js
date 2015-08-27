@@ -7,3 +7,4 @@ require('cloud/locationIndex.js');
 require('cloud/houseAmenityIndex.js');
 require('cloud/tripExport.js');
 require('cloud/emailSender.js');
+require('cloud/invite-code.js');

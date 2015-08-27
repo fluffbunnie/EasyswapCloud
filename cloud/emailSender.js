@@ -6,7 +6,6 @@ var UserMailgun = require('mailgun');
 Parse.Cloud.afterSave("Email", function(request) {
     Parse.Cloud.useMasterKey();
     //var userPointer= request.object.get("user");
-    //var
     console.log("sending email to minhthao");
     UserMailgun.initialize('getmagpie.com', 'key-29a34dfd9d1f65049b8e05e03ff3214b');
 

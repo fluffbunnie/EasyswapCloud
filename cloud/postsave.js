@@ -422,81 +422,6 @@ function getInfoColumn(description, text) {
     return "<tr><td style=\"padding:5px 10px 5px 10px; font-weight:bold\">" + description +"</td><td style=\"padding:5px 10px 5px 10px; font-weight:normal\">" + text +"</td></tr>";
 }
 
-
-//////////////////////////////////////////////////////////////
-/**
- * Handle the after save for user. Namely, when the user first create an account
- * We send him/her a welcome email.
- */
-Parse.Cloud.afterSave("Users", function(request) {
-    if(!(request.object.existed())){
-        var name = getSenderName(request.object);
-        var email = request.object.get("email");
-        if (email == undefined) {
-            //do nothing
-        } else {
-            UserMailgun.initialize('getmagpie.com', 'key-29a34dfd9d1f65049b8e05e03ff3214b');
-
-            UserMailgun.sendEmail({
-                to: email,
-                from: "Katerina" + "<support@getmagpie.com>",
-                subject: "Welcome to Magpie",
-                html: "Hi " + name + ",<br><br>"
-                + "Welcome to Magpie! We’re so excited to have you as one of our early adopters. Our mission is to create a trusted home exchange community where you can discover authentic, safe, and inexpensive travel accommodations.<br><br>"
-                + "Your feedback means the world to us! Let us know what you think of Magpie through the “App Feedback” form on the app’s menu bar.<br><br>"
-                + "Thanks,<br>"
-                + "The Magpie Team"
-            }, {
-                success: function(httpResponse) {
-                    console.log(httpResponse);
-                },
-                error: function(httpResponse) {
-                    console.error(httpResponse);
-                }
-            });
-        }
-    }
-});
-
-
-/**
- * Handle the after save for invitation request code
- */
-Parse.Cloud.afterSave("InvitationCode", function(request) {
-    if (!(request.object.existed())) {
-        var inviteCodeObj = request.object;
-        inviteCodeObj.set("code", (Math.floor((Math.random() * 900000) + 100000)).toString());
-        inviteCodeObj.set("status", "PENDING");
-        inviteCodeObj.save(null, {
-            success: function() {
-                console.log("request invitation code save");
-            },
-            error: function(err) {
-                console.error("error: " + err);
-            }
-        });
-
-        UserMailgun.initialize('getmagpie.com', 'key-29a34dfd9d1f65049b8e05e03ff3214b');
-
-        UserMailgun.sendEmail({
-            to: inviteCodeObj["email"],
-            from: "Huong Tran" + "<support@getmagpie.com>",
-            subject: "Your request is being process",
-            html: "Hi " + inviteCodeObj["username"] + ",<br><br>"
-            + "Welcome to Magpie! Your request for invitation code is currently under reviewed by our members. Please allow 24 hours for the request to be processed.<br><br>"
-            + "Thanks,<br>"
-            + "Huong Tran"
-        }, {
-            success: function(httpResponse) {
-                console.log(httpResponse);
-            },
-            error: function(httpResponse) {
-                console.error(httpResponse);
-            }
-        });
-    }
-});
-
 /**
  * Handle the after save for the feedback
  */
@@ -744,7 +669,7 @@ Parse.Cloud.afterSave("Chat", function(request) {
                     senderQuery.find({
                         success: function (results) {
                             if (results.length > 0) {
-                                console.log("pushing request for: " + sender.id);
+                                //console.log("pushing request for: " + sender.id);
                                 var mSender = results[0];
                                 var alertMessage = chatNotificationAlertString(mSender, content, contentType);
                                 var senderPhoto = mSender.get("profilePic");

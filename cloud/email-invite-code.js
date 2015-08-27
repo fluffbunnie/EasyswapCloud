@@ -1,4 +1,59 @@
-exports.getInviteCodeHtml = function() {
+/**
+ * Get the user name
+ * @param userObj
+ * @returns name
+ */
+function getUserName(invitationCodeObj) {
+    var name = invitationCodeObj.get("firstname");
+    if (name == undefined || name.length == 0) {
+        name = invitationCodeObj.get("username");
+        if (name == undefined || name.length == 0) {
+            name = invitationCodeObj.get("email");
+            if (name == undefined) {
+                name = "";
+            }
+            if (name.length > 0) {
+                var nameIndex = name.indexOf("@");
+                name = name.substring(0, nameIndex);
+            }
+        }
+    }
+
+    return name;
+}
+
+/**
+ * Get the invitation code
+ * @param invitationCodeObj
+ * @returns {any|number|V|IDBRequest}
+ */
+function getInvitationCode(invitationCodeObj) {
+    return invitationCodeObj.get("code");
+}
+
+/**
+ * Get the refer friend link
+ * @param userObj
+ * @return {string}
+ */
+function getFriendReferalLink(invitationCodeObj) {
+    return "http://getmagpie.com/refer-friend/" + invitationCodeObj.id;
+}
+
+/**
+ * Get the unsubscribe link
+ * @param userObj
+ * @returns {string}
+ */
+function getUnsubsribeLink(invitationCodeObj) {
+    return "http://getmagpie.com/unsubscribe/" + invitationCodeObj.id;
+}
+
+function getAppScheam(invitationCodeObj) {
+    return ""
+}
+
+exports.getInvitationCodeEmailHtml = function(invitationCodeObj) {
     return '\
     <!-- Inliner Build Version 4380b7741bb759d6cb997545f3add21ad48f010b -->\
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\
@@ -341,7 +396,7 @@ background: #970b0e !important;\
                 <table class="row" style="bgcolor: #e2e2e2; border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; width: 100%; position: relative; display: block; margin: 0px; padding: 0px;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td class="wrapper last" style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; position: relative; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0px;" align="left" valign="top">\
 \
                       <table class="twelve columns" style="bgcolor: #e2e2e2; border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; width: 640px; margin: 0px; padding: 0px;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0px 0px 10px;" align="left" valign="top">\
-                              <a href="#" style="color: #DE5057; text-decoration: none;"><img width="640" height="340" src="http://i.imgur.com/7fuXScP.jpg" style="border-top-left-radius: 10px; border-top-right-radius: 10px; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; width: auto; max-width: 100%; float: left; clear: both; display: block; border: none;" align="left" /></a>\
+                              <a href="http://bnc.lt/invite-code" style="color: #DE5057; text-decoration: none;"><img width="640" height="340" src="http://i.imgur.com/LM5y4rb.jpg" style="border-top-left-radius: 10px; border-top-right-radius: 10px; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; width: auto; max-width: 100%; float: left; clear: both; display: block; border: none;" align="left" /></a>\
 \
                           </td>\
                           <td class="expander" style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; visibility: hidden; width: 0px; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0;" align="left" valign="top"></td>\
@@ -349,20 +404,20 @@ background: #970b0e !important;\
                   </tr></table><table class="row" style="border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; width: 100%; position: relative; display: block; padding: 0px;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td class="wrapper last" style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; position: relative; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0px;" align="left" valign="top">\
 \
                       <table class="twelve columns" style="border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; width: 640px; margin: 0 auto; padding: 0;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0px 0px 10px;" align="left" valign="top">\
-							<br /><h3 style="word-break: normal; font-size: 24px; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; line-height: 1.3; margin: 20px 6% 0; padding: 0;" align="left">Hi Khai,</h3>\
-                            <br /><p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">Welcome to Magpie! I’m Huong, CEO of Magpie, and I’m excited to have you as one of our members. Our mission is to create a trusted home exchange community where you can discover authentic, safe, and convenient travel accommodations - all for free.\
-</p>\
-							<p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">Do you have any upcoming trips that we can help you find an exchange for? Let us know - we’ll help you find a match.\
+							<br /><h3 style="word-break: normal; font-size: 24px; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; line-height: 1.3; margin: 20px 6% 0; padding: 0;" align="left">Hi ' +
+        getUserName(invitationCodeObj)
+        + ',</h3>\
+                            <br /><p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">Congratulations! We\'re excited to let you know that your invitation request has been approved. Please use the code <b>' + getInvitationCode(invitationCodeObj) + '</b> to sign up.\
 </p>\
 							<br /></td>     \
                         </tr></table></td>\
                   </tr></table><table class="button" style="width: auto; min-width: 400px; border-radius: 6px; border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; overflow: hidden; margin: auto; padding: 0;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: center; color: #ffffff; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; display: block; width: auto !important; min-width: 160px; background: #72C556; margin: 0; padding: 15px 50px;" align="center" bgcolor="#72C556" valign="top">\
-      <a href="#" style="font-weight: regular; text-decoration: none; font-family: Avenir, sans-serif; color: #ffffff; font-size: 16px;">Share trip details</a>\
+      <a href="http://bnc.lt/invite-code" style="font-weight: regular; text-decoration: none; font-family: Avenir, sans-serif; color: #ffffff; font-size: 16px;">Sign Up</a>\
     </td>\
   </tr></table><table class="row" style="border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; width: 100%; position: relative; display: block; padding: 0px;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td class="wrapper last" style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; position: relative; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0px;" align="left" valign="top">\
 \
                       <table class="twelve columns" style="border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; width: 640px; margin: 0 auto; padding: 0;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0px 0px 10px;" align="left" valign="top">\
-                            <br /><p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">If you have any questions or feedback as you get started with Magpie, please don’t hesitate to reach out. Also, if you have any friends you think would like to try Magpie, <a href="#" style="color: #DE5057; text-decoration: none;">send them our way</a>! Thanks for being awesome and supporting the Magpie community.\
+                            <br /><p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">If you have any questions or feedback as you get started with Magpie, please don’t hesitate to reach out. Also, if you have any friends you think would like to try Magpie, <a href="' + getFriendReferalLink(invitationCodeObj) + '" style="color: #DE5057; text-decoration: none;">send them our way</a>! Thanks for being awesome and supporting the Magpie community.\
 </p>\
                           	<br /><p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">Sincerely,<br />Huong Tran, CEO\
 </p>\
@@ -389,7 +444,7 @@ background: #970b0e !important;\
                               	1282 Noe Street, San Francisco, CA 94114\
                                \
                               </p>\
-                              <br /><a href="#" style="text-decoration: underline; text-align: center; font-size: 12px; font-family: Avenir, sans-serif; color: #CFD2D7;"><font color="CFD2D7">Unsubscribe</font></a>\
+                              <br /><a href="'+ getUnsubsribeLink(invitationCodeObj) + '" style="text-decoration: underline; text-align: center; font-size: 12px; font-family: Avenir, sans-serif; color: #CFD2D7;"><font color="CFD2D7">Unsubscribe</font></a>\
                             </center>\
                           </td>\
                           <td class="expander" style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; visibility: hidden; width: 0px; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0;" align="left" valign="top"></td>\
