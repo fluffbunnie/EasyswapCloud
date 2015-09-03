@@ -27,41 +27,64 @@ Parse.Cloud.afterSave("InvitationCode", function(request) {
             }
         });
     } else if (request.object.get("status") == "APPROVED") {
-        //we first send the email
-        Mailgun.initialize('getmagpie.com', 'key-29a34dfd9d1f65049b8e05e03ff3214b');
-        Mailgun.sendEmail({
-            to: getUserEmail(request.object),
-            from: "Magpie" + "<support@getmagpie.com>",
-            subject: "Magpie invitation code",
-            html: InviteCode.getInvitationCodeEmailHtml(request.object)
-        }, {
-            success: function(httpResponse) {
-                console.log(httpResponse);
-            },
-            error: function(httpResponse) {
-                console.error(httpResponse);
-            }
-        });
 
         var inviteCodeObj = request.object;
-        var pushQuery =  new Parse.Query(Parse.Installation);
-        pushQuery.equalTo("invitationCode", inviteCodeObj);
-        Parse.Push.send({
-            where: pushQuery,
-            data: {
-                where: pushQuery,
-                data: {
-                    alert: "Your invitation code is ready!! Please check your email inbox.",
-                    badge: 'Increment'
+        //var pushQuery =  new Parse.Query(Parse.Installation);
+        //pushQuery.equalTo("invitationCode", inviteCodeObj);
+        //Parse.Push.send({
+        //    where: pushQuery,
+        //    data: {
+        //        where: pushQuery,
+        //        data: {
+        //            alert: "Your invitation code is ready!! Please check your email inbox.",
+        //            badge: 'Increment'
+        //        }
+        //    }
+        //}, {
+        //    success: function() {
+        //        console.log("push successfully");
+        //    },
+        //    error: function(error) {
+        //        console.error("Error: " + error.message);
+        //    }
+        //});
+
+        Parse.Cloud.httpRequest({
+            method: 'POST',
+            url: 'https://api.branch.io/v1/url',
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+            },
+            body: {
+                "branch_key": "key_live_eehRvejTecDnXaGWp4zQMmcbttndmQ7O",
+                "campaign":"onboarding",
+                "feature":"invite-code",
+                "channel":"email",
+                "tags":["invitation-code"],
+                "data":{
+                    "email":getUserEmail(request.object),
+                    "code":inviteCodeObj.get("code").toString(),
+                    "$deeplink_path":"signup"
                 }
             }
-        }, {
-            success: function() {
-                console.log("push successfully");
-            },
-            error: function(error) {
-                console.error("Error: " + error.message);
-            }
+        }).then(function(httpResponse) {
+            var mResponse = JSON.parse(httpResponse.text);
+            Mailgun.initialize('getmagpie.com', 'key-29a34dfd9d1f65049b8e05e03ff3214b');
+            Mailgun.sendEmail({
+                to: getUserEmail(request.object),
+                from: "Magpie" + "<support@getmagpie.com>",
+                subject: "Magpie invitation code",
+                html: InviteCode.getInvitationCodeEmailHtml(request.object, mResponse.url)
+            }, {
+                success: function(response) {
+                    console.log(response);
+                },
+                error: function(err) {
+                    console.error(err);
+                }
+            });
+        }, function(httpResponse) {
+            console.error('Request failed with response code ' + httpResponse.status);
         });
     }
 });

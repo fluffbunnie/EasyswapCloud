@@ -37,7 +37,7 @@ function getInvitationCode(invitationCodeObj) {
  * @return {string}
  */
 function getFriendReferalLink(invitationCodeObj) {
-    return "http://getmagpie.com/refer-friend/" + invitationCodeObj.id;
+    return "http://getmagpie.com/refer-friend/cid=" + invitationCodeObj.id;
 }
 
 /**
@@ -46,14 +46,14 @@ function getFriendReferalLink(invitationCodeObj) {
  * @returns {string}
  */
 function getUnsubsribeLink(invitationCodeObj) {
-    return "http://getmagpie.com/unsubscribe/" + invitationCodeObj.id;
+    return "http://getmagpie.com/unsubscribe/cid=" + invitationCodeObj.id;
 }
 
-function getAppScheam(invitationCodeObj) {
-    return ""
+function getAppScheam() {
+    return "http://bnc.lt/invite-code"
 }
 
-exports.getInvitationCodeEmailHtml = function(invitationCodeObj) {
+exports.getInvitationCodeEmailHtml = function(invitationCodeObj, deepLink) {
     return '\
     <!-- Inliner Build Version 4380b7741bb759d6cb997545f3add21ad48f010b -->\
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\
@@ -396,8 +396,18 @@ background: #970b0e !important;\
                 <table class="row" style="bgcolor: #e2e2e2; border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; width: 100%; position: relative; display: block; margin: 0px; padding: 0px;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td class="wrapper last" style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; position: relative; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0px;" align="left" valign="top">\
 \
                       <table class="twelve columns" style="bgcolor: #e2e2e2; border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; width: 640px; margin: 0px; padding: 0px;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0px 0px 10px;" align="left" valign="top">\
-                              <a href="http://bnc.lt/invite-code" style="color: #DE5057; text-decoration: none;"><img width="640" height="340" src="http://i.imgur.com/LM5y4rb.jpg" style="border-top-left-radius: 10px; border-top-right-radius: 10px; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; width: auto; max-width: 100%; float: left; clear: both; display: block; border: none;" align="left" /></a>\
-\
+                              <a href="' + deepLink + '" style="color: #DE5057; text-decoration: none;">\
+                              <div style="width:640px; height:330px; background-image:url(http://i.imgur.com/k9mq503.jpg); background-repeat:no-repeat; background-size:cover; border-top-left-radius: 10px; border-top-right-radius: 10px; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; vertical-align:bottom">\
+                              	<div style="height:230px"></div>\
+                                 <table class="button" style="width: auto; min-width: 65%; border-radius: 6px; border-spacing: 0; border-collapse: collapse; vertical-align: bottom; text-align: left; overflow: hidden; margin-left: auto; margin-right:auto; padding: 0;">\
+                                 	<tr style="vertical-align: top; text-align: left; padding: 0;" align="left">\
+                                    	<td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: center; color: #ffffff; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; display: block; width: auto !important; min-width: 160px; background: #72C556; margin: 0; padding: 15px 50px;" align="center" bgcolor="#72C556" valign="bottom">\
+      										<p style="margin:0px; font-weight: regular; text-decoration: none; font-family: Avenir, sans-serif; color: #ffffff; font-size: 16px;">Complete Registration</p>\
+    									</td>\
+  									</tr>\
+                                 </table>\
+                              </div>\
+                              </a>\
                           </td>\
                           <td class="expander" style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; visibility: hidden; width: 0px; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0;" align="left" valign="top"></td>\
                         </tr></table></td>\
@@ -411,15 +421,15 @@ background: #970b0e !important;\
 </p>\
 							<br /></td>     \
                         </tr></table></td>\
-                  </tr></table><table class="button" style="width: auto; min-width: 400px; border-radius: 6px; border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; overflow: hidden; margin: auto; padding: 0;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: center; color: #ffffff; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; display: block; width: auto !important; min-width: 160px; background: #72C556; margin: 0; padding: 15px 50px;" align="center" bgcolor="#72C556" valign="top">\
-      <a href="http://bnc.lt/invite-code" style="font-weight: regular; text-decoration: none; font-family: Avenir, sans-serif; color: #ffffff; font-size: 16px;">Sign Up</a>\
+                  </tr></table><table class="button" style="width: auto; min-width: 65%; border-radius: 6px; border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; overflow: hidden; margin: auto; padding: 0;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: center; color: #ffffff; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; display: block; width: auto !important; min-width: 160px; background: #72C556; margin: 0; padding: 15px 50px;" align="center" bgcolor="#72C556" valign="top">\
+      <a href="' + deepLink + '" style="font-weight: regular; text-decoration: none; font-family: Avenir, sans-serif; color: #ffffff; font-size: 16px;">Complete Registration</a>\
     </td>\
   </tr></table><table class="row" style="border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; width: 100%; position: relative; display: block; padding: 0px;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td class="wrapper last" style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; position: relative; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0px;" align="left" valign="top">\
 \
                       <table class="twelve columns" style="border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; width: 640px; margin: 0 auto; padding: 0;"><tr style="vertical-align: top; text-align: left; padding: 0;" align="left"><td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0px 0px 10px;" align="left" valign="top">\
-                            <br /><p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">If you have any questions or feedback as you get started with Magpie, please don’t hesitate to reach out. Also, if you have any friends you think would like to try Magpie, <a href="' + getFriendReferalLink(invitationCodeObj) + '" style="color: #DE5057; text-decoration: none;">send them our way</a>! Thanks for being awesome and supporting the Magpie community.\
+                            <br /><p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">If you have any questions or feedback as you get started with Magpie, please don’t hesitate to reach out. Also, if you have any friends you think would like to try Magpie, <a href="' + getFriendReferalLink(invitationCodeObj) + '" style="color: #DE5057; text-decoration: none;">send them our way</a>! Thanks for being awesome and supporting the Magpie community of travelers like you.\
 </p>\
-                          	<br /><p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">Sincerely,<br />Huong Tran, CEO\
+                          	<br /><p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">Sincerely,<br />Magpie Team\
 </p>\
 							<br /></td>\
                         </tr></table></td>\
@@ -441,7 +451,7 @@ background: #970b0e !important;\
                                \
                               </p>\
                               <p style="text-align: center; font-size: 12px; color: #c0c4c8; line-height: 15px; font-family: Avenir, sans-serif; font-weight: normal; margin: 0 6% 10px; padding: 0;" align="center">\
-                              	1282 Noe Street, San Francisco, CA 94114\
+                              	PO Box #460403, San Francisco, CA 94146\
                                \
                               </p>\
                               <br /><a href="'+ getUnsubsribeLink(invitationCodeObj) + '" style="text-decoration: underline; text-align: center; font-size: 12px; font-family: Avenir, sans-serif; color: #CFD2D7;"><font color="CFD2D7">Unsubscribe</font></a>\

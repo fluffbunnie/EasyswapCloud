@@ -1,25 +1,32 @@
-var inviteCodeHtml = require('cloud/email-invite-code.js');
-
 var Mailgun = require('mailgun');
-var UserMailgun = require('mailgun');
+var PasswordReset = require('cloud/email-forgot-password.js');
+
+/**
+ * Get the user password
+ */
 
 Parse.Cloud.afterSave("Email", function(request) {
     Parse.Cloud.useMasterKey();
-    //var userPointer= request.object.get("user");
-    console.log("sending email to minhthao");
-    UserMailgun.initialize('getmagpie.com', 'key-29a34dfd9d1f65049b8e05e03ff3214b');
+    var User = Parse.Object.extend("Users");
 
-    UserMailgun.sendEmail({
-        to: "mtng91@gmail.com",
-        from: "Katerina" + "<support@getmagpie.com>",
-        subject: "Welcome to Magpie",
-        html: inviteCodeHtml.getInviteCodeHtml()
-    }, {
-        success: function(httpResponse) {
-            console.log(httpResponse);
+    var emailObj = request.object;
+    var userObj = emailObj.get("user");
+
+    var userQuery = new Parse.Query(User);
+    userQuery.equalTo("objectId", userObj.id);
+    userQuery.find({
+        success:function(results) {
+            if (results.length > 0) {
+                var user = results[0];
+
+                var type = emailObj.get("type");
+                if (type == 'password reset') {
+                    PasswordReset.sendPasswordResetToUser(user);
+                }
+            }
         },
-        error: function(httpResponse) {
-            console.error(httpResponse);
+        error:function(error) {
+            console.error("Error: " + error);
         }
     });
 });
