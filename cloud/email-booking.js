@@ -1,14 +1,17 @@
+var Mailgun = require('mailgun');
+var Moment = require('moment');
+
 /**
  * Get the user name
  * @param userObj
  * @returns name
  */
-function getUserName(invitationCodeObj) {
-    var name = invitationCodeObj.get("firstname");
+function getUserName(userObj) {
+    var name = userObj.get("firstname");
     if (name == undefined || name.length == 0) {
-        name = invitationCodeObj.get("username");
+        name = userObj.get("username");
         if (name == undefined || name.length == 0) {
-            name = invitationCodeObj.get("email");
+            name = userObj.get("email");
             if (name == undefined) {
                 name = "";
             }
@@ -18,42 +21,190 @@ function getUserName(invitationCodeObj) {
             }
         }
     }
-
     return name;
 }
 
 /**
- * Get the invitation code
- * @param invitationCodeObj
- * @returns {any|number|V|IDBRequest}
+ * Get the user email
+ * @param userObj
+ * @returns {*}
  */
-function getInvitationCode(invitationCodeObj) {
-    return invitationCodeObj.get("code");
+function getUserEmail(userObj) {
+    return userObj.get("email");
 }
 
 /**
- * Get the refer friend link
- * @param userObj
+ * Get the listing name
+ * @param propertyObj
  * @return {string}
  */
-function getFriendReferalLink(invitationCodeObj) {
-    return "http://getmagpie.com/refer-friend/cid=" + invitationCodeObj.id;
+function getPlaceName(propertyObj) {
+    return propertyObj.get("name");
 }
 
 /**
- * Get the unsubscribe link
- * @param userObj
+ * Get the trip start date
+ * @param tripObj
  * @returns {string}
  */
-function getUnsubsribeLink(invitationCodeObj) {
-    return "http://getmagpie.com/unsubscribe/cid=" + invitationCodeObj.id;
+function getTripStartDate(tripObj) {
+    var startDate = Moment(tripObj.get("startDate"));
+    return startDate.format("MMM Do, YYYY");
 }
 
-function getAppScheam() {
-    return "http://bnc.lt/invite-code"
+/**
+ * Get the trip end date
+ * @param tripObj
+ * @returns {string}
+ */
+function getTripEndDate(tripObj) {
+    var endDate = Moment(tripObj.get("endDate"));
+    return endDate.format("MMM Do, YYYY");
 }
 
-exports.getInvitationCodeEmailHtml = function(invitationCodeObj, deepLink) {
+/**
+ * Get the booking request content for the guest
+ * @param tripObj
+ * @return {*}
+ */
+function getGuestBookingRequestContent(tripObj) {
+    var hostObj = tripObj.get("host");
+    var propertyObj = tripObj.get("place");
+    return "You’ve requested to stay at <b>" + getPlaceName(propertyObj) + "</b>. This is not a reservation confirmation. We’ll let you know as soon as <b>" + getUserEmail(hostObj) + "<b> approves or declines your request.";
+}
+
+/**
+ * Get the booking request content for the host
+ * @param tripObj
+ * @return {*}
+ */
+function getHostBookingRequestContent(tripObj) {
+    var guestObj = tripObj.get("guest");
+    return "You have a new exchange request from </b>" + getUserName(guestObj) + "</b>. <b>" + getUserName(guestObj) + "</b> would like to stay at your place from <b>" + getTripStartDate(tripObj) + " - " + getTripEndDate(tripObj) + "</b>. Please accept or decline <b>" + getUserName(guestObj) + "'s</b> request."
+}
+
+/**
+ * Get the booking confirmation content for the guest
+ * @param tripObj
+ * @return {*}
+ */
+function getGuestConfirmationRequestContent(tripObj) {
+    var hostObj = tripObj.get("host");
+    var propertyObj = tripObj.get("place");
+    return "Yay! <b>" + getUserName(hostObj) + "</b> has approved your request to stay at <b>" + getPlaceName(propertyObj) + "</b>. We recommend continuing the conversation with <b>" + getUserName(hostObj) + "</b> through Magpie’s Chat to confirm arrival time and answer any questions you may both have.";
+}
+
+/**
+ * Get the booking confirmation content for the host
+ * @param tripObj
+ * @return {*}
+ */
+function getHostConfirmationRequestContent(tripObj) {
+    var guestObj = tripObj.get("guest");
+    var propertyObj = tripObj.get("place");
+    return "Yay! You've approved <b>" + getUserName(guestObj) + "'s</b> request to stay at <b>" + getPlaceName(propertyObj) + "</b>. We recommend continuing the conversation with <b>" + getUserName(guestObj) + "</b> through Magpie’s Chat to confirm arrival time and answer any questions you may both have."
+}
+
+exports.sendTripInfoContent = function(tripObj) {
+    Parse.Cloud.httpRequest({
+        method: 'POST',
+        url: 'https://api.branch.io/v1/url',
+        headers: {
+            'Content-Type':'application/json;charset=utf-8'
+        },
+        body: {
+            "branch_key": "key_live_eehRvejTecDnXaGWp4zQMmcbttndmQ7O",
+            "campaign": "user-initiate",
+            "feature": "transaction",
+            "channel": "email",
+            "tags": ["book", "transaction"],
+            "data": {
+                "tripId": tripObj.id,
+                "$deeplink_path": "booking",
+                "$desktop_url": "http://getmagpie.com/beta"
+            }
+        }
+    }).then(function(httpResponse) {
+        var hostObj = tripObj.get("host");
+        var guestObj = tripObj.get("guest");
+        var propertyObj = tripObj.get("place");
+
+        Mailgun.initialize('getmagpie.com', 'key-29a34dfd9d1f65049b8e05e03ff3214b');
+        var url = JSON.parse(httpResponse.text).url;
+        var approval = tripObj["approval"];
+        if (approval == 'NO') {
+            //send the request email to the host first
+            Mailgun.sendEmail({
+                to: getUserEmail(hostObj),
+                from: "Magpie" + "<support@getmagpie.com>",
+                subject: "Stay request from " + getUserName(guestObj),
+                html: getBookingHtml(hostObj, getHostBookingRequestContent(tripObj), "Review Request", url)
+            }, {
+                success:function(response) {
+                    console.log(response)
+                },
+                error:function(error) {
+                    console.error("Error: " + error);
+                }
+            });
+
+            //then send it to the guest
+            Mailgun.sendEmail({
+                to: getUserEmail(guestObj),
+                from: "Magpie" + "<support@getmagpie.com>",
+                subject: "Stay request made for " + getPlaceName(propertyObj),
+                html: getBookingHtml(guestObj, getGuestBookingRequestContent(tripObj), "Preview Trip", url)
+            }, {
+                success:function(response) {
+                    console.log(response)
+                },
+                error:function(error) {
+                    console.error("Error: " + error);
+                }
+            });
+        } else if (approval == 'YES') {
+            //send the confirmation email to the host first
+            Mailgun.sendEmail({
+                to: getUserEmail(hostObj),
+                from: "Magpie" + "<support@getmagpie.com>",
+                subject: "Stay request confirmed - " + getUserName(guestObj),
+                html: getBookingHtml(hostObj, getHostConfirmationRequestContent(tripObj), "Preview Trip", url)
+            }, {
+                success:function(response) {
+                    console.log(response)
+                },
+                error:function(error) {
+                    console.error("Error: " + error);
+                }
+            });
+
+            //then send it to the guest
+            Mailgun.sendEmail({
+                to: getUserEmail(guestObj),
+                from: "Magpie" + "<support@getmagpie.com>",
+                subject: "Stay request confirmed for " + getPlaceName(propertyObj),
+                html: getBookingHtml(guestObj, getGuestConfirmationRequestContent(tripObj), "Preview Trip", url)
+            }, {
+                success:function(response) {
+                    console.log(response)
+                },
+                error:function(error) {
+                    console.error("Error: " + error);
+                }
+            });
+        }
+    }, function(error) {
+        console.error('Error: ' + error);
+    });
+}
+
+/**
+ * Get the html formated email
+ * @param userObj
+ * @param deepLink
+ * @returns {string}
+ */
+function getBookingHtml(userObj, description, cta, deepLink) {
     return '\
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\
     <!-- Inliner Build Version 4380b7741bb759d6cb997545f3add21ad48f010b -->\
@@ -123,32 +274,19 @@ exports.getInvitationCodeEmailHtml = function(invitationCodeObj, deepLink) {
         <table class="container" style="border-radius: 10px; border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: inherit; width:95%; max-width:640px; background: #f8f8f8; margin: 0 auto; padding: 0;" bgcolor="#f8f8f8">\
             <tr style="vertical-align: top; text-align: left; padding:15px 0;" align="left">\
                 <td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0;" align="left" valign="top">\
-                    <a href="' + deepLink + '" style="color: #DE5057; text-decoration: none;">\
-                        <div style="width:640px; height:330px; background-image:url(http://i.imgur.com/k9mq503.jpg); background-repeat:no-repeat; background-position:center; background-size:cover; border-top-left-radius: 10px; border-top-right-radius: 10px; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; vertical-align:bottom">\
-                            <div style="height:230px"></div>\
-                            <table class="button" style="width: 75%; border-radius: 6px; border-spacing: 0; border-collapse: collapse; vertical-align: bottom; text-align: left; overflow: hidden; margin-left: auto; margin-right:auto; padding: 0;">\
-                                <tr style="vertical-align: top; text-align: left; padding: 0;" align="left">\
-                                    <td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: center; color: #ffffff; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; display: block; width: auto !important; min-width: 160px; background: #72C556; margin: 0; padding: 15px 50px;" align="center" bgcolor="#72C556" valign="bottom">\
-                                        <p style="margin:0px; font-weight: regular; text-decoration: none; font-family: Avenir, sans-serif; color: #ffffff; font-size: 16px;">Complete Registration</p>\
-                                    </td>\
-                                </tr>\
-                            </table>\
-                        </div>\
-                    </a>\
                     <br>\
-                    <h3 style="word-break: normal; font-size: 24px; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; line-height: 1.3; margin: 20px 6% 0; padding: 0;" align="left">Hi ' + getUserName(invitationCodeObj) + ',</h3>\
-                    <p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">Congratulations! We\'re excited to let you know that your invitation request has been approved. Please use the code <b>' + getInvitationCode(invitationCodeObj) + '</b> to sign up.</p>\
+                    <h3 style="word-break: normal; font-size: 24px; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; line-height: 1.3; margin: 20px 6% 0; padding: 0;" align="left">Hi ' + getUserName(userObj) + ',</h3>\
+                    <p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">' + description + '</p>\
                     <br>\
                     <table class="button" style="width: 75%; border-radius: 6px; border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; overflow: hidden; margin: auto; padding: 0;">\
                         <tr style="vertical-align: top; text-align: left; padding: 0;" align="left">\
                             <td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: center; color: #ffffff; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; display: block; width: auto !important; min-width: 160px; background: #72C556; margin: 0; padding: 15px 50px;" align="center" bgcolor="#72C556" valign="top">\
-                                <a href="' + deepLink + '" style="font-weight: regular; text-decoration: none; font-family: Avenir, sans-serif; color: #ffffff; font-size: 16px;">Complete Registration</a>\
+                                <a href="' + deepLink + '" style="font-weight: regular; text-decoration: none; font-family: Avenir, sans-serif; color: #ffffff; font-size: 16px;">' + cta + '</a>\
                             </td>\
                         </tr>\
                     </table>\
                     <br>\
-                    <p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">If you have any questions or feedback as you get started with Magpie, please don’t hesitate to reach out. Also, if you have any friends you think would like to try Magpie, <a href="' + getFriendReferalLink(invitationCodeObj) + '" style="color: #DE5057; text-decoration: none;">send them our way</a>! Thanks for being awesome and supporting the Magpie community of travelers like you.</p>\
-                    <p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">Sincerely,<br>Magpie Support<br></p>\
+                    <p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">Thanks,<br>The Magpie Team<br></p>\
                     <h4 style="border-top-width: 1px; border-top-color: #e0e0e0; border-top-style: solid; color: #373B44; font-family: Avenir, sans-serif; font-weight: 500; text-align: left; line-height: 1.3; word-break: normal; font-size: 20px; margin: 0 6%; padding: 0;" align="left"></h4>\
                     <br>\
                     <h4 style="text-align: center; color: #373B44; font-family: Avenir, sans-serif; line-height: 1.3; font-size: 20px; font-weight: 500; word-break: normal; margin: 0 6%; padding: 0;" align="center">We’re here to help!</h4>\
