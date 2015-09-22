@@ -2,6 +2,46 @@ require(JSON);
 
 var Mailgun = require('mailgun');
 var UserMailgun = require('mailgun');
+var EmailPublishing = require('cloud/email-property-publishing.js');
+
+
+/**
+ * Before save a property, we need to check if the state has been changed. If so, then send the approval request or the publish email as needed
+ */
+Parse.Cloud.beforeSave("Property", function(request, response) {
+    var Property = Parse.Object.extend("Property");
+    Parse.Cloud.useMasterKey();
+
+    if (request.object.existed()) {
+        if (request.object.dirty("state")) {
+            if (request.object.get("state") == "public") {
+                var propertyQuery = new Parse.Query(Property);
+                propertyQuery.equalTo("objectId", request.object.id);
+                propertyQuery.include("owner");
+                propertyQuery.find({
+                    success:function(results) {
+                        if (results.length > 0) {
+                            var propertyObj = results[0];
+                            EmailPublishing.sendPublicPropertyContent(propertyObj, response);
+                        } else {
+                            response.success();
+                        }
+                    },
+                    error:function(error) {
+                        console.error("Error: " + error);
+                        response.success()
+                    }
+                });
+            } else {
+                response.success();
+            }
+        } else {
+            response.success();
+        }
+    } else {
+        response.success();
+    }
+});
 
 Parse.Cloud.afterSave("Property", function(request) {
     Parse.Cloud.useMasterKey();
@@ -422,310 +462,6 @@ function getInfoColumn(description, text) {
     return "<tr><td style=\"padding:5px 10px 5px 10px; font-weight:bold\">" + description +"</td><td style=\"padding:5px 10px 5px 10px; font-weight:normal\">" + text +"</td></tr>";
 }
 
-/**
- * Handle the after save for the feedback
- */
-Parse.Cloud.afterSave("Feedback", function(request) {
-    Mailgun.initialize('support.getmagpie.com', 'key-29a34dfd9d1f65049b8e05e03ff3214b');
-
-    var User = Parse.Object.extend("Users");
-    var userPointer = request.object.get("user");
-    if (userPointer == undefined) {
-        var name = "Magpie User";
-        var iosVersion = request.object.get("iosVersion");
-        if (iosVersion == undefined) iosVersion = "undefined";
-        var device = request.object.get("device");
-        if (device == undefined) device = "undefined";
-        var appVersion = request.object.get("appVersion");
-        if (appVersion == undefined) appVersion = "undefined";
-        var feeling = request.object.get("feeling");
-        if (feeling == undefined) feeling = "undefined";
-        var message = request.object.get("content");
-        if (message == undefined) message = "undefined";
-        var date = request.object.createdAt;
-
-        Mailgun.sendEmail({
-            to: "support@getmagpie.com",
-            from: name + " <noreply@support.getmagpie.com>",
-            subject: "App Feedback from " + name,
-            html: "<b>App Version: </b>" + appVersion + "<br>"
-            + "<b>iOS Version: </b>" + iosVersion + "<br>"
-            + "<b>Device: </b>" + device + "<br>"
-            + "<b>Date Sent: </b>" + date + "<br><br><br>"
-            + "<b>Feeling: </b>" + feeling + "<br>"
-            + "<b>Message: </b><br>" + message
-        }, {
-            success: function(httpResponse) {
-                console.log("email sent");
-                console.log(httpResponse);
-            },
-            error: function(httpResponse) {
-                console.error(httpResponse);
-            }
-        });
-    } else {
-        var userQuery = new Parse.Query(User);
-        userQuery.equalTo("objectId", userPointer.id);
-        userQuery.find({
-            success:function(results) {
-                if (results.length > 0) {
-                    var user = results[0];
-                    var name = getSenderName(user);
-                    var email = user.get("email");
-                    if (email == undefined) email = "undefined";
-                    var gender= user.get("gender");
-                    if (gender == undefined) gender = "undefined";
-                    var uid = userPointer.id;
-                    var location = user.get("location");
-                    if (location == undefined) location = "undefined";
-                    var iosVersion = request.object.get("iosVersion");
-                    if (iosVersion == undefined) iosVersion = "undefined";
-                    var device = request.object.get("device");
-                    if (device == undefined) device = "undefined";
-                    var appVersion = request.object.get("appVersion");
-                    if (appVersion == undefined) appVersion = "undefined";
-                    var feeling = request.object.get("feeling");
-                    if (feeling == undefined) feeling = "undefined";
-                    var message = request.object.get("content");
-                    if (message == undefined) message = "undefined";
-                    var date = request.object.createdAt;
-
-                    var replyTo = email;
-                    if (replyTo == "undefined") replyTo = "noreply@getmagpie.com";
-
-                    Mailgun.sendEmail({
-                        'h:Reply-To': replyTo,
-                        to: "support@getmagpie.com",
-                        from: name + " <noreply@support.getmagpie.com>",
-                        subject: "App Feedback from " + name,
-                        html: "<b>Name: </b>" + name + "<br>"
-                            + "<b>Email: </b>" + email + "<br>"
-                            + "<b>gender </b>" + gender + "<br>"
-                            + "<b>User ID: </b>" + uid + "<br>"
-                            + "<b>Location: </b>" + location + "<br>"
-                            + "<b>App Version: </b>" + appVersion + "<br>"
-                            + "<b>iOS Version: </b>" + iosVersion + "<br>"
-                            + "<b>Device: </b>" + device + "<br>"
-                            + "<b>Date Sent: </b>" + date + "<br><br><br>"
-                            + "<b>Feeling: </b>" + feeling + "<br>"
-                            + "<b>Message: </b><br>" + message
-                    }, {
-                        success: function(httpResponse) {
-                            console.log(httpResponse);
-                        },
-                        error: function(httpResponse) {
-                            console.error(httpResponse);
-                        }
-                    });
-                }
-            },
-            error: function(httpResponse) {
-                console.error(httpResponse);
-            }
-        });
-    }
-});
-
-/**
- * Handle the behavior when the user comment on a conversation
- */
-Parse.Cloud.afterSave("Chat", function(request) {
-    Parse.Cloud.useMasterKey();
-    var Conversation = Parse.Object.extend("Conversation");
-    var User = Parse.Object.extend("Users");
-    var Trip = Parse.Object.extend("Trip");
-
-    var conversation = request.object.get("conversation");
-    var sender = request.object.get("sender");
-    var receiver = request.object.get("receiver");
-    var content = request.object.get("content");
-    var contentType = request.object.get("contentType");
-    var chatId = request.object.id;
-
-    var receiverQuery = new Parse.Query(User);
-    receiverQuery.equalTo("objectId", receiver.id);
-    receiverQuery.find({
-        success:function(receivers) {
-            if (receivers.length > 0) {
-                var mReceiver = receivers[0];
-                var loginType = mReceiver.get("loginType");
-                if (loginType == undefined) {
-                    //if the user does not exist, we send an email to pilo@getmagpie.com
-                    var senderQuery = new Parse.Query(User);
-                    senderQuery.equalTo("objectId", sender.id);
-                    senderQuery.find({
-                        success:function(senders) {
-                            if (senders.length > 0) {
-                                var mSender = senders[0];
-                                var senderEmail = mSender.get("email");
-                                if (senderEmail == undefined) senderEmail = "undefined";
-
-                                var conversationQuery = new Parse.Query(Conversation);
-                                conversationQuery.equalTo("objectId", conversation.id);
-                                conversationQuery.include("user2Property");
-                                conversationQuery.find({
-                                    success:function(conversations) {
-                                        if (conversations.length > 0) {
-                                            var mConversation = conversations[0];
-                                            var place = mConversation.get("user2Property");
-                                            var placeName = place.get("name");
-                                            if (placeName == undefined) placeName = "undefined";
-                                            var placeLocation = place.get("location");
-                                            if (placeLocation == undefined) placeLocation = "undefined";
-                                            var placeAirbnbPid = place.get("airbnbPid");
-                                            if (placeAirbnbPid == undefined) placeAirbnbPid = "undefined";
-
-                                            Mailgun.initialize('support.getmagpie.com', 'key-29a34dfd9d1f65049b8e05e03ff3214b');
-
-                                            if (contentType == "book") {
-                                                var tripQuery = new Parse.Query(Trip);
-                                                tripQuery.equalTo("objectId", content);
-                                                tripQuery.include("place");
-                                                tripQuery.find({
-                                                    success: function (trips) {
-                                                        if (trips.length > 0) {
-                                                            var trip = trips[0];
-                                                            Mailgun.sendEmail({
-                                                                to: "support@getmagpie.com, katerina@getmagpie.com, mt@getmagpie.com",
-                                                                from: getSenderName(mSender) + " <noreply@support.getmagpie.com>",
-                                                                subject: "Booking request made to airbnb user " + getSenderName(mReceiver),
-                                                                html: "<b>Sender Id: </b>" + sender.id + "<br>"
-                                                                + "<b>Sender name: </b>" + getSenderName(mSender) + "<br>"
-                                                                + "<b>Sender email: </b>" + senderEmail + "<br><br><br>"
-
-                                                                + "<b>Receiver Id: </b>" + receiver.id + "<br>"
-                                                                + "<b>Receiver name: </b>" + getSenderName(mReceiver) + "<br>"
-                                                                + "<b>Receiver airbnb Id: </b> <a href=\"https://wwww.airbnb.com/users/show/" + mReceiver.get("airbnbUid") + "\">" + mReceiver.get("airbnbUid") + "</a><br><br><br>"
-
-                                                                + "<b>Target place id: </b>" + conversation.id + "<br>"
-                                                                + "<b>Target place name: </b>" + placeName + "<br>"
-                                                                + "<b>Target place location: </b>" + placeLocation + "<br>"
-                                                                + "<b>Target place airbnb Id: </b> <a href=\"https://wwww.airbnb.com/rooms/" + placeAirbnbPid + "\">" + placeAirbnbPid + "</a><br><br><br>"
-
-                                                                + "<b>Start date: </b>" + trip.get("startDate") + "<br>"
-                                                                + "<b>End date: </b>" + trip.get("endDate")
-                                                            }, {
-                                                                success: function(httpResponse) {
-                                                                    console.log("email sent");
-                                                                    console.log(httpResponse);
-                                                                },
-                                                                error: function(httpResponse) {
-                                                                    console.error(httpResponse);
-                                                                }
-                                                            });
-                                                        }
-                                                    },
-                                                    error:function(tripError) {
-                                                        console.log("Error: " + tripError);
-                                                    }
-                                                });
-                                            }
-                                        } else {
-                                            Mailgun.sendEmail({
-                                                to: "pilo@getmagpie.com",
-                                                from: getSenderName(mSender) + " <noreply@support.getmagpie.com>",
-                                                subject: "Message sent to airbnb user " + getSenderName(mReceiver),
-                                                html: "<b>Sender Id: </b>" + sender.id + "<br>"
-                                                + "<b>Sender name: </b>" + getSenderName(mSender) + "<br>"
-                                                + "<b>Sender email: </b>" + senderEmail + "<br><br><br>"
-
-                                                + "<b>Receiver Id: </b>" + receiver.id + "<br>"
-                                                + "<b>Receiver name: </b>" + getSenderName(mReceiver) + "<br>"
-                                                + "<b>Receiver airbnb Id: </b> <a href=\"https://wwww.airbnb.com/users/show/" + mReceiver.get("airbnbUid") + "\">" + mReceiver.get("airbnbUid") + "</a><br><br><br>"
-
-                                                + "<b>Target place id: </b>" + conversation.id + "<br>"
-                                                + "<b>Target place name: </b>" + placeName + "<br>"
-                                                + "<b>Target place location: </b>" + placeLocation + "<br>"
-                                                + "<b>Target place airbnb Id: </b> <a href=\"https://wwww.airbnb.com/rooms/" + placeAirbnbPid + "\">" + placeAirbnbPid + "</a><br><br><br>"
-
-                                                + "<b>Content type: </b>" + contentType + "<br>"
-                                                + "<b>Content: </b>" + content
-                                            }, {
-                                                success: function(httpResponse) {
-                                                    console.log("email sent");
-                                                    console.log(httpResponse);
-                                                },
-                                                error: function(httpResponse) {
-                                                    console.error(httpResponse);
-                                                }
-                                            });
-                                        }
-                                    },
-                                    error:function(conversationError) {
-                                        console.log("Error: " + conversationError);
-                                    }
-                                });
-                            }
-                        },
-                        error:function(senderError) {
-                            console.log("Error: " + senderError);
-                        }
-                    });
-                } else {
-                    //if the user does exist, we send the push notification
-                    console.log("start pushing");
-                    var senderQuery = new Parse.Query(User);
-                    senderQuery.equalTo("objectId", sender.id);
-                    senderQuery.find({
-                        success: function (results) {
-                            if (results.length > 0) {
-                                //console.log("pushing request for: " + sender.id);
-                                var mSender = results[0];
-                                var alertMessage = chatNotificationAlertString(mSender, content, contentType);
-                                var senderPhoto = mSender.get("profilePic");
-                                if (senderPhoto == undefined) senderPhoto = "";
-
-                                var userPushQuery = new Parse.Query(Parse.Installation);
-                                userPushQuery.equalTo("user", receiver);
-                                Parse.Push.send({
-                                    where: userPushQuery,
-                                    data: {
-                                        alert: alertMessage,
-                                        badge: 'Increment',
-                                        "type": "message",
-                                        "message_id": chatId,
-                                        "message_sender_id": sender.id,
-                                        "message_sender_name": getSenderName(mSender),
-                                        "message_sender_photo": senderPhoto,
-                                        "message_content": content,
-                                        "message_content_type": contentType
-                                    }
-                                }, {
-                                    success: function () {
-                                        console.log("push successful");
-                                    },
-                                    error: function (error) {
-                                        console.error("Error: " + error.message);
-                                    }
-                                });
-                            }
-                        },
-                        error:function(error) {
-                            console.error("Error: " + error);
-                        }
-                    });
-                }
-            }
-        },
-        error:function(receiverError) {
-            console.error("Error: " + receiverError);
-        }
-    });
-});
-
-function chatNotificationAlertString(mSender, content, contentType) {
-    var name = getSenderName(mSender);
-
-    if (contentType == "text") {
-        return name + ": " + content;
-    } else if (contentType == "book") {
-        return name + " requested a stay at your place.";
-    } else if (contentType == "confirm") {
-        return name + " approved your stay request";
-    } else if (contentType == "cancel") {
-        return name + " canceled the stay request at your place";
-    }
-}
 
 function getSenderName(mSender) {
     var name = mSender.get("firstname");

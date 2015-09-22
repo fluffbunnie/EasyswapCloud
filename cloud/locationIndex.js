@@ -70,7 +70,7 @@ function indexLocation(properties, index, status) {
             error:function(error) {
                 status.error("Error finding location index. Error: " + error.message);
             }
-        })
+        });
     } else {
         status.success("Index complete");
     }

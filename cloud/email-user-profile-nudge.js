@@ -1,5 +1,4 @@
 var Mailgun = require('mailgun');
-var Moment = require('moment');
 
 /**
  * Get the user name
@@ -27,189 +26,141 @@ function getUserName(userObj) {
 /**
  * Get the user email
  * @param userObj
- * @returns {*}
+ * @returns String
  */
 function getUserEmail(userObj) {
     return userObj.get("email");
 }
 
 /**
- * Get the listing name
- * @param propertyObj
- * @return {string}
+ * Get the user's location
+ * @param userObj
+ * @returns location
  */
-function getPlaceName(propertyObj) {
-    return propertyObj.get("name");
+function getUserLocation(userObj) {
+    var location = userObj.get("location");
+    if (location == undefined) location = "";
+    return location;
 }
 
 /**
- * Get the trip start date
- * @param tripObj
- * @returns {string}
+ * Get the list of favorite destination
+ * @param userObj
+ * @returns favorite place
  */
-function getTripStartDate(tripObj) {
-    var startDate = Moment(tripObj.get("startDate"));
-    return startDate.format("MMM Do, YYYY");
+function getUserFavoriteDestination(userObj) {
+    var favoriteDestination = userObj.get("favoritePlace");
+    if (favoriteDestination == undefined) favoriteDestination = "";
+    return favoriteDestination;
 }
 
 /**
- * Get the trip end date
- * @param tripObj
- * @returns {string}
+ * Get the list of user's dream destination
+ * @param userObj
+ * @returns dream place
  */
-function getTripEndDate(tripObj) {
-    var endDate = Moment(tripObj.get("endDate"));
-    return endDate.format("MMM Do, YYYY");
+function getUserDreamDestination(userObj) {
+    var dreamDestination = userObj.get("dreamPlace");
+    if (dreamDestination == undefined) dreamDestination = "";
+    return dreamDestination;
 }
 
 /**
- * Get the booking request content for the guest
- * @param tripObj
- * @return {*}
+ * Get the user association
+ * @param userObj
+ * @returns association
  */
-function getGuestBookingRequestContent(tripObj) {
-    var hostObj = tripObj.get("host");
-    var propertyObj = tripObj.get("place");
-    return "You’ve requested to stay at <b>" + getPlaceName(propertyObj) + "</b>. This is not a reservation confirmation. We’ll let you know as soon as <b>" + getUserName(hostObj) + "</b> approves or declines your request.";
+function getUserAssociation(userObj) {
+    var association = userObj.get("association");
+    if (association == undefined) association = "";
+    return association;
 }
 
 /**
- * Get the booking request content for the host
- * @param tripObj
- * @return {*}
+ * Get the user description
+ * @param userObj
+ * @returns description
  */
-function getHostBookingRequestContent(tripObj) {
-    var guestObj = tripObj.get("guest");
-    return "You have a new exchange request from <b>" + getUserName(guestObj) + "</b>. <b>" + getUserName(guestObj) + "</b> would like to stay at your place from <b>" + getTripStartDate(tripObj) + " - " + getTripEndDate(tripObj) + "</b>. Please accept or decline <b>" + getUserName(guestObj) + "'s</b> request."
+function getUserDescription(userObj) {
+    var description = userObj.get("description");
+    if (description == undefined) description = "";
+    return description;
 }
 
 /**
- * Get the booking confirmation content for the guest
- * @param tripObj
- * @return {*}
+ * Send the user profile's nudge email.
+ * @param results
+ * @param status
  */
-function getGuestConfirmationRequestContent(tripObj) {
-    var hostObj = tripObj.get("host");
-    var propertyObj = tripObj.get("place");
-    return "Yay! <b>" + getUserName(hostObj) + "</b> has approved your request to stay at <b>" + getPlaceName(propertyObj) + "</b>. We recommend continuing the conversation with <b>" + getUserName(hostObj) + "</b> through Magpie’s Chat to confirm arrival time and answer any questions you may both have.";
-}
+exports.sendUserProfileNudgeEmail = function(results, status) {
+    sendNudgeEmail(results, 0, status);
+};
 
-/**
- * Get the booking confirmation content for the host
- * @param tripObj
- * @return {*}
- */
-function getHostConfirmationRequestContent(tripObj) {
-    var guestObj = tripObj.get("guest");
-    var propertyObj = tripObj.get("place");
-    return "Yay! You've approved <b>" + getUserName(guestObj) + "'s</b> request to stay at <b>" + getPlaceName(propertyObj) + "</b>. We recommend continuing the conversation with <b>" + getUserName(guestObj) + "</b> through Magpie’s Chat to confirm arrival time and answer any questions you may both have."
-}
 
-exports.sendTripInfoContent = function(tripObj) {
-    Parse.Cloud.httpRequest({
-        method: 'POST',
-        url: 'https://api.branch.io/v1/url',
-        headers: {
-            'Content-Type':'application/json;charset=utf-8'
-        },
-        body: {
-            "branch_key": "key_live_eehRvejTecDnXaGWp4zQMmcbttndmQ7O",
-            "campaign": "user-initiate",
-            "feature": "transaction",
-            "channel": "email",
-            "tags": ["book", "transaction"],
-            "data": {
-                "tripId": tripObj.id,
-                "$deeplink_path": "booking",
-                "$desktop_url": "http://getmagpie.com/beta"
-            }
+function sendNudgeEmail(users, index, status) {
+    if (index < users.length) {
+        var userObj = users[index];
+        var location = getUserLocation(userObj);
+        var favoritePlace = getUserFavoriteDestination(userObj);
+        var dreamPlace = getUserDreamDestination(userObj);
+        var association = getUserAssociation(userObj);
+        var description = getUserDescription(userObj);
+        if (location.length == 0 || favoritePlace.length == 0 || dreamPlace.length == 0 || association.length == 0 || description.length == 0) {
+            Parse.Cloud.httpRequest({
+                method: 'POST',
+                url: 'https://api.branch.io/v1/url',
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8'
+                },
+                body: {
+                    "branch_key": "key_live_eehRvejTecDnXaGWp4zQMmcbttndmQ7O",
+                    "campaign": "user-initiate",
+                    "feature": "onboarding",
+                    "channel": "email",
+                    "tags": ["profile", "nudge"],
+                    "data": {
+                        "userId": userObj.id,
+                        "$deeplink_path": "your-profile",
+                        "$desktop_url": "http://getmagpie.com/beta"
+                    }
+                }
+            }).then(function (httpResponse) {
+                Mailgun.initialize('getmagpie.com', 'key-29a34dfd9d1f65049b8e05e03ff3214b');
+                var url = JSON.parse(httpResponse.text).url;
+
+                Mailgun.sendEmail({
+                    to: getUserEmail(userObj),
+                    from: "Magpie" + "<support@getmagpie.com>",
+                    subject: "Tell us about yourself!",
+                    html: getNudgeHtml(userObj, url)
+                }, {
+                    success: function () {
+                        console.log("success");
+                        sendNudgeEmail(users, index + 1, status);
+                    },
+                    error: function (error) {
+                        console.log("erro");
+                        sendNudgeEmail(users, index + 1, status);
+                    }
+                });
+            }, function (error) {
+                sendNudgeEmail(users, index + 1, status);
+            });
+        } else {
+            sendNudgeEmail(users, index + 1, status);
         }
-    }).then(function(httpResponse) {
-        var hostObj = tripObj.get("host");
-        var guestObj = tripObj.get("guest");
-        var propertyObj = tripObj.get("place");
-
-        Mailgun.initialize('getmagpie.com', 'key-29a34dfd9d1f65049b8e05e03ff3214b');
-        var url = JSON.parse(httpResponse.text).url;
-        console.log(getUserEmail(guestObj));
-        var approval = tripObj.get("approval");
-        if (approval == 'NO') {
-            //send the request email to the host first
-            Mailgun.sendEmail({
-                to: getUserEmail(hostObj),
-                from: "Magpie" + "<support@getmagpie.com>",
-                subject: "Stay request from " + getUserName(guestObj),
-                html: getBookingHtml(hostObj, getHostBookingRequestContent(tripObj), "Review Request", url)
-            }, {
-                success:function(response) {
-                    console.log(response)
-                },
-                error:function(error) {
-                    console.error("Error: " + error);
-                }
-            });
-
-            //then send it to the guest
-            Mailgun.sendEmail({
-                to: getUserEmail(guestObj),
-                from: "Magpie" + "<support@getmagpie.com>",
-                subject: "Stay request made for " + getPlaceName(propertyObj),
-                html: getBookingHtml(guestObj, getGuestBookingRequestContent(tripObj), "Preview Trip", url)
-            }, {
-                success:function(response) {
-                    console.log(response)
-                },
-                error:function(error) {
-                    console.error("Error: " + error);
-                }
-            });
-        } else if (approval == 'YES') {
-            //send the confirmation email to the host first
-            Mailgun.sendEmail({
-                to: getUserEmail(hostObj),
-                from: "Magpie" + "<support@getmagpie.com>",
-                subject: "Stay request confirmed - " + getUserName(guestObj),
-                html: getBookingHtml(hostObj, getHostConfirmationRequestContent(tripObj), "Preview Trip", url)
-            }, {
-                success:function(response) {
-                    console.log(response)
-                },
-                error:function(error) {
-                    console.error("Error: " + error);
-                }
-            });
-
-            //then send it to the guest
-            Mailgun.sendEmail({
-                to: getUserEmail(guestObj),
-                from: "Magpie" + "<support@getmagpie.com>",
-                subject: "Stay request confirmed for " + getPlaceName(propertyObj),
-                html: getBookingHtml(guestObj, getGuestConfirmationRequestContent(tripObj), "Preview Trip", url)
-            }, {
-                success:function(response) {
-                    console.log(response)
-                },
-                error:function(error) {
-                    console.error("Error: " + error);
-                }
-            });
-        }
-    }, function(error) {
-        console.error('Error: ' + error);
-    });
+    } else {
+        status.success("Index complete");
+    }
 }
 
 /**
  * Get the html formated email
  * @param userObj
- * @param description
- * @param cta
  * @param deepLink
  * @returns {string}
  */
-function getBookingHtml(userObj, description, cta, deepLink) {
-    console.log(userObj);
-    console.log(description);
+function getNudgeHtml(userObj, deepLink) {
     return '\
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\
     <!-- Inliner Build Version 4380b7741bb759d6cb997545f3add21ad48f010b -->\
@@ -279,14 +230,26 @@ function getBookingHtml(userObj, description, cta, deepLink) {
         <table class="container" style="border-radius: 10px; border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: inherit; width:95%; max-width:640px; background: #f8f8f8; margin: 0 auto; padding: 0;" bgcolor="#f8f8f8">\
             <tr style="vertical-align: top; text-align: left; padding:15px 0;" align="left">\
                 <td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: left; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; margin: 0; padding: 0;" align="left" valign="top">\
+                    <a href="' + deepLink + '" style="color: #DE5057; text-decoration: none;">\
+                        <div style="width:640px; height:330px; background-image:url(http://i.imgur.com/i5G4KRS.jpg); background-repeat:no-repeat; background-position:center; background-size:cover; border-top-left-radius: 10px; border-top-right-radius: 10px; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; vertical-align:bottom">\
+                            <div style="height:230px"></div>\
+                            <table class="button" style="width: 75%; border-radius: 6px; border-spacing: 0; border-collapse: collapse; vertical-align: bottom; text-align: left; overflow: hidden; margin-left: auto; margin-right:auto; padding: 0;">\
+                                <tr style="vertical-align: top; text-align: left; padding: 0;" align="left">\
+                                    <td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: center; color: #ffffff; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; display: block; width: auto !important; min-width: 160px; background: #72C556; margin: 0; padding: 15px 50px;" align="center" bgcolor="#72C556" valign="bottom">\
+                                        <p style="margin:0px; font-weight: regular; text-decoration: none; font-family: Avenir, sans-serif; color: #ffffff; font-size: 16px;">Complete Profile</p>\
+                                    </td>\
+                                </tr>\
+                            </table>\
+                        </div>\
+                    </a>\
                     <br>\
                     <h3 style="word-break: normal; font-size: 24px; color: #222222; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; line-height: 1.3; margin: 20px 6% 0; padding: 0;" align="left">Hi ' + getUserName(userObj) + ',</h3>\
-                    <p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">' + description + '</p>\
+                    <p style="font-size: 15px; color: #898F9B; line-height: 30px; font-family: Avenir, sans-serif; font-weight: normal; text-align: left; margin: 20px 6% 10px; padding: 0;" align="left">At Magpie, we’re all about building a rich & trusted community, which starts with you! Help us get to know you by setting up your profile. All you have to do is click on your name in the menu bar. From there, add a profile photo, your location, and a short blurb about yourself.</p>\
                     <br>\
                     <table class="button" style="width: 75%; max-width:75%; border-radius: 6px; border-spacing: 0; border-collapse: collapse; vertical-align: top; text-align: left; overflow: hidden; margin: auto; padding: 0;">\
                         <tr style="vertical-align: top; text-align: left; padding: 0;" align="left">\
-                            <td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: center; color: #ffffff; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; display: block; width: auto !important; min-width: 160px; background: #72C556; margin: 0; padding: 15px 0px;" align="center" bgcolor="#72C556" valign="top">\
-                                <a href="' + deepLink + '" style="font-weight: regular; text-decoration: none; font-family: Avenir, sans-serif; color: #ffffff; font-size: 16px;">' + cta + '</a>\
+                            <td style="word-break: break-word; -webkit-hyphens: none; -moz-hyphens: none; hyphens: none; border-collapse: collapse !important; vertical-align: top; text-align: center; color: #ffffff; font-family: Avenir, sans-serif; font-weight: normal; line-height: 19px; font-size: 15px; display: block; width: auto !important; background: #72C556; margin: 0; padding: 15px 0px;" align="center" bgcolor="#72C556" valign="top">\
+                                <a href="' + deepLink + '" style="font-weight: regular; text-decoration: none; font-family: Avenir, sans-serif; color: #ffffff; font-size: 16px;">Complete Profile</a>\
                             </td>\
                         </tr>\
                     </table>\
